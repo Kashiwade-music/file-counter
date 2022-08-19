@@ -139,7 +139,7 @@ pub fn get_rootdir_info(
 
     if should_sort_by_filenum {
         dir_returns.sort_by(|a, b| b.num.cmp(&a.num));
-        file_returns.sort_by(|a, b| b.num.cmp(&a.num));
+        file_returns.sort_by(|a, b| b.size.cmp(&a.size));
     }
     if should_sort_by_filesize {
         dir_returns.sort_by(|a, b| b.size.cmp(&a.size));
