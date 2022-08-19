@@ -63,8 +63,13 @@ fn get_size_and_count(path: &Path, bars: &MultiProgress) -> Data {
             }
         }
     } else {
-        size = path.metadata().unwrap().len();
-        num = 1;
+        match path.metadata() {
+            Ok(meta) => {
+                size = meta.len();
+                num = 1;
+            }
+            Err(e) => bars.println(format!("error {}", e)).unwrap(),
+        }
     }
 
     let returns = Data {
