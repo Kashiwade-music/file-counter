@@ -1,31 +1,48 @@
 use ansi_term::{Colour, Style};
-use fs_extra::dir::get_size;
+use clap::Parser;
 use humansize::{file_size_opts as options, FileSize};
-use std::{env, path::Path};
-use walkdir::WalkDir;
+use std::path::PathBuf;
+
+mod core;
+
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    /// directory path which you want to see
+    #[clap(default_value_t = String::from("./"), value_parser)]
+    path: String,
+
+    /// sort by file num
+    #[clap(short, long, action)]
+    num: bool,
+
+    /// sort by file size
+    #[clap(short, long, action)]
+    size: bool,
+}
 
 fn main() {
-    let current_dir = env::current_dir().unwrap();
+    let cli = Cli::parse();
+
+    let result = core::get_rootdir_info(&PathBuf::from(cli.path), cli.num, cli.size);
+
     println!(
-        "{:>21} : {}",
+        "\n{:>21} : {}",
         "current directory",
-        Colour::Cyan.paint(current_dir.to_str().unwrap())
+        Colour::Cyan.paint(result.root_abs_dirpath)
     );
     println!(
         "{:>21} : {}",
         "number of total files",
-        Colour::Green.paint(format!(
-            "{}",
-            WalkDir::new(&current_dir).into_iter().count() - 1
-        ))
+        Colour::Green.paint(format!("{}", result.root_total_file_num))
     );
     println!(
         "{:>21} : {}",
         "size of total files",
         Colour::Green.paint(format!(
             "{}",
-            get_size(&current_dir)
-                .unwrap()
+            result
+                .root_total_file_size
                 .file_size(options::CONVENTIONAL)
                 .unwrap()
         ))
@@ -33,38 +50,26 @@ fn main() {
 
     println!(
         "\n{}   {}   {}",
-        Style::new().bold().paint(format!("{:^5}", "num")),
-        Style::new().bold().paint(format!("{:^10}", "size")),
+        Style::new().bold().paint(format!("{:^7}", "num")),
+        Style::new().bold().paint(format!("{:^12}", "size")),
         Style::new().bold().paint(format!("{}", "path"))
     );
-    println!("------------------------------------------------------------------");
+    println!("-----------------------------------------------");
 
-    for path_1 in WalkDir::new(current_dir)
-        .max_depth(1)
-        .min_depth(1)
-        .sort_by_key(|a| a.path().is_file())
-    {
-        let path: &Path = path_1.as_ref().unwrap().path();
-        if path.is_dir() {
-            println!(
-                "{:>5}   {:>10}   {}",
-                WalkDir::new(path).into_iter().count() - 1,
-                get_size(path)
-                    .unwrap()
-                    .file_size(options::CONVENTIONAL)
-                    .unwrap(),
-                Colour::Cyan.paint(path.to_str().unwrap())
-            );
-        } else {
-            println!(
-                "{:>5}   {:>10}   {}",
-                "---",
-                get_size(path)
-                    .unwrap()
-                    .file_size(options::CONVENTIONAL)
-                    .unwrap(),
-                path.to_str().unwrap()
-            );
-        }
+    for data in result.dirs.iter() {
+        println!(
+            "{:>7}   {:>12}   {}",
+            data.num,
+            data.size.file_size(options::CONVENTIONAL).unwrap(),
+            Colour::Cyan.paint(&data.name)
+        );
+    }
+    for data in result.files.iter() {
+        println!(
+            "{:>7}   {:>12}   {}",
+            "---",
+            data.size.file_size(options::CONVENTIONAL).unwrap(),
+            data.name
+        );
     }
 }
