@@ -88,10 +88,12 @@ pub fn get_rootdir_info(
     }
 
     if should_sort_by_filenum {
-        dir_returns.sort_by(|a, b| b.num.cmp(&a.num))
+        dir_returns.sort_by(|a, b| b.num.cmp(&a.num));
+        file_returns.sort_by(|a, b| b.num.cmp(&a.num));
     }
     if should_sort_by_filesize {
-        dir_returns.sort_by(|a, b| b.size.cmp(&a.size))
+        dir_returns.sort_by(|a, b| b.size.cmp(&a.size));
+        file_returns.sort_by(|a, b| b.size.cmp(&a.size));
     }
 
     let returns = OutputData {
