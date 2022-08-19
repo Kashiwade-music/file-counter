@@ -1,3 +1,4 @@
+use indicatif::{MultiProgress, ProgressIterator, ProgressStyle};
 use std::{fs, path::Path};
 use walkdir::WalkDir;
 
@@ -7,15 +8,40 @@ pub struct Data {
     pub num: u64,
 }
 
-fn get_size_and_count(path: &Path) -> Data {
+fn get_size_and_count(path: &Path, bars: &MultiProgress) -> Data {
     //! 与えられたパスがディレクトリの場合、内部を再帰的にwalkして、
     //! 内部にある総ファイル数・サイズを返します。
 
     let mut size: u64 = 0;
     let mut num: u64 = 0;
 
+    let main_pb = WalkDir::new(path)
+        .min_depth(1)
+        .into_iter()
+        .progress_count(
+            WalkDir::new(path)
+                .min_depth(1)
+                .into_iter()
+                .count()
+                .try_into()
+                .unwrap(),
+        )
+        .with_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+            )
+            .unwrap()
+            .progress_chars("##-"),
+        );
+
+    bars.add(main_pb.progress.clone());
+
+    main_pb
+        .progress
+        .set_message(path.to_str().unwrap().to_owned());
+
     if path.is_dir() {
-        for entry in WalkDir::new(path).min_depth(1) {
+        for entry in main_pb {
             match entry {
                 Ok(dir_entry) => {
                     if dir_entry.path().is_file() {
@@ -24,15 +50,16 @@ fn get_size_and_count(path: &Path) -> Data {
                                 size += meta.len();
                                 num += 1;
                             }
-                            Err(_e) => {
-                                println!("Can't access to {}", dir_entry.path().to_str().unwrap())
-                            }
+                            Err(_e) => bars
+                                .println(format!(
+                                    "Can't access to {}",
+                                    dir_entry.path().to_str().unwrap()
+                                ))
+                                .unwrap(),
                         }
                     }
                 }
-                Err(e) => {
-                    println!("error {}", e)
-                }
+                Err(e) => bars.println(format!("error {}", e)).unwrap(),
             }
         }
     } else {
@@ -69,10 +96,35 @@ pub fn get_rootdir_info(
     let mut total_file_size = 0;
     let mut total_file_num = 0;
 
-    for entry in WalkDir::new(path).min_depth(1).max_depth(1) {
+    let bars = MultiProgress::new();
+
+    let main_pb = WalkDir::new(path)
+        .min_depth(1)
+        .max_depth(1)
+        .into_iter()
+        .progress_count(
+            WalkDir::new(path)
+                .min_depth(1)
+                .max_depth(1)
+                .into_iter()
+                .count()
+                .try_into()
+                .unwrap(),
+        )
+        .with_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+            )
+            .unwrap()
+            .progress_chars("##-"),
+        );
+
+    bars.add(main_pb.progress.clone());
+
+    for entry in main_pb {
         match entry {
             Ok(dir_entry) => {
-                let res = get_size_and_count(dir_entry.path());
+                let res = get_size_and_count(dir_entry.path(), &bars);
                 total_file_size += res.size;
                 total_file_num += res.num;
                 if dir_entry.path().is_file() {
@@ -81,9 +133,7 @@ pub fn get_rootdir_info(
                     dir_returns.push(res);
                 }
             }
-            Err(e) => {
-                println!("error {}", e)
-            }
+            Err(e) => bars.println(format!("error {}", e)).unwrap(),
         }
     }
 

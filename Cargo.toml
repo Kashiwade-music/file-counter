@@ -13,7 +13,7 @@ fs_extra = "1.2.0"
 humansize = "1.1.1"
 ansi_term = "0.12.1"
 clap = { version = "3.2.17", features = ["derive"] }
-
+indicatif = "0.17.0"
 
 [profile.release]
 panic = 'abort'
