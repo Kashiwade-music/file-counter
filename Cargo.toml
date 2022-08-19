@@ -1,7 +1,9 @@
 [package]
-name = "file_counter"
+name = "fcount"
+authors = ["Kashiwade"]
 version = "0.1.0"
 edition = "2021"
+description = "A simple CLI tool that recursively calculates and displays the number and size of files and directories."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,3 +12,8 @@ walkdir = "2"
 fs_extra = "1.2.0"
 humansize = "1.1.1"
 ansi_term = "0.12.1"
+clap = { version = "3.2.17", features = ["derive"] }
+
+
+[profile.release]
+panic = 'abort'
